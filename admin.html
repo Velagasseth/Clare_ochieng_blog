@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Clare Ochieng</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Clare Ochieng</h1>
+        <p>Admin Dashboard</p>
+    </header>
+    
+<nav>
+    <a href="index.html">View Public Site</a>
+    <a href="#new-post">New Post</a>
+    <a href="#manage">Manage Posts</a>
+    <a href="#" class="logout-link">Logout</a>
+</nav>
+    <main>
+        <section id="new-post">
+            <h2>Create New Post</h2>
+            <form id="post-form">
+                <div class="form-group">
+                    <label for="post-title">Title:</label>
+                    <input type="text" id="post-title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-summary">Summary:</label>
+                    <textarea id="post-summary" rows="3" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-content">Content:</label>
+                    <textarea id="post-content" rows="6" required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-image">Image Upload:</label>
+                    <input type="file" id="post-image" accept="/*">
+                </div>
+                
+                <div class="form-group">
+                    <label for="post-video">Video Link (optional):</label>
+                    <input type="url" id="post-video" placeholder="https://youtube.com/...">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="featured-post"> Feature this post
+                    </label>
+                </div>
+                
+                <button type="submit">Publish Post</button>
+                <button type="button" id="save-draft">Save Draft</button>
+            </form>
+        </section>
+        
+        <section id="manage">
+            <h2>Manage Existing Posts</h2>
+            <div class="post-list" id="post-list">
+                <!-- Existing posts will be listed here -->
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <p>&copy; <span id="current-year"></span> Clare Ochieng. Admin Dashboard.</p>
+    </footer>
+    
+    <script src="script.js"></script>
+</body>
+</html>
