@@ -186,26 +186,7 @@ function loadPublicPosts() {
     if (posts.length === 0) {
         // Sample data for first-time visitors with proper image handling
         const samplePosts = [
-            {
-                id: 1,
-                title: "Investigating Urban Development",
-                summary: "A deep dive into city planning challenges",
-                content: "<p>This article explores the complex issues surrounding urban development in growing cities.</p>",
-                image: "https://via.placeholder.com/800x400?text=Urban+Development",
-                video: "",
-                date: new Date().toISOString().split('T')[0],
-                featured: true
-            },
-            {
-                id: 2,
-                title: "Women in Tech: Breaking Barriers",
-                summary: "How women are transforming the technology sector",
-                content: "<p>An examination of the challenges and successes of women in technology fields.</p>",
-                image: "https://via.placeholder.com/800x400?text=Women+in+Tech",
-                video: "",
-                date: new Date().toISOString().split('T')[0],
-                featured: false
-            }
+   
         ];
         
         savePosts(samplePosts);
