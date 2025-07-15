@@ -23,8 +23,15 @@
         <section id="featured">
             <h2>Featured Story</h2>
             <div class="featured-story" id="featured-story">
-                <!-- Content loaded from JavaScript -->
-            </div>
+    <div class="post-image-container">
+        <div class="loading-placeholder"></div>
+        <img src="" alt="Featured story image" 
+             loading="lazy"
+             onload="this.style.opacity = 1; this.previousElementSibling.style.display = 'none'"
+             onerror="handleImageError(this)"
+             style="opacity: 0;">
+    </div>
+
         </section>
         
         <section id="recent">
@@ -37,7 +44,7 @@
     
     <footer>
         <p>&copy; <span id="current-year"></span> Clare Ochieng. All rights reserved.</p>
-        <p>Contact: clare@ochiengjournalism.com</p>
+        <p>Contact: clareochieng43@gmail.com</p>
     </footer>
     
     <script src="script.js"></script>

@@ -1,7 +1,41 @@
 
+// Image error handler (add to your existing JS)
+function handleImageError(imgElement) {
+    imgElement.src = 'https://via.placeholder.com/800x400?text=Image+Error';
+    imgElement.style.opacity = 1;
+    imgElement.previousElementSibling.style.display = 'none';
+    console.error('Image failed to load:', imgElement.alt);
+}
+
+
+function initImageLoading() {
+    // Intersection Observer for lazy loading
+    if ('IntersectionObserver' in window) {
+        const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src || img.src;
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+
+        lazyImages.forEach(img => {
+            if (!img.complete) {
+                imageObserver.observe(img);
+            }
+        });
+    }
+}
+
 // Shared functionality for both pages
 document.addEventListener('DOMContentLoaded', function() {
     // Set current year in footer
+    initImageLoading();
+
+
     document.getElementById('current-year').textContent = new Date().getFullYear();
     
     // Check if we're on the public page
@@ -25,6 +59,120 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+// Image handling constants
+const UPLOADS_DIR = 'uploads/';
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+// Initialize image handling
+
+// Handle image selection
+function handleImageSelection(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('image-preview');
+    const previewImage = document.getElementById('preview-image');
+    const status = document.getElementById('upload-status');
+    
+    // Reset previous state
+    preview.style.display = 'none';
+    status.textContent = '';
+    status.className = 'upload-status';
+    
+    if (!file) return;
+    
+    // Validate image
+    if (!ALLOWED_TYPES.includes(file.type)) {
+        showUploadStatus('Only JPG, PNG, GIF, or WEBP images are allowed', 'error');
+        return;
+    }
+    
+    if (file.size > MAX_IMAGE_SIZE) {
+        showUploadStatus(`Image too large (max ${MAX_IMAGE_SIZE/1024/1024}MB)`, 'error');
+        return;
+    }
+    
+    // Preview image
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        preview.style.display = 'block';
+        previewImage.src = e.target.result;
+        showUploadStatus(`Ready to upload: ${file.name} (${(file.size/1024).toFixed(1)}KB)`, 'success');
+    };
+    reader.readAsDataURL(file);
+}
+
+// Handle image upload and storage
+async function uploadAndStoreImage(file) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Create unique filename
+            const extension = file.name.split('.').pop();
+            const fileName = `img_${Date.now()}.${extension}`;
+            const filePath = `${UPLOADS_DIR}${fileName}`;
+            
+            // Convert to base64 for localStorage (simulated upload)
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Store in localStorage (simulated file system)
+                const uploads = JSON.parse(localStorage.getItem('journalism_uploads') || {});
+                uploads[fileName] = {
+                    name: fileName,
+                    path: filePath,
+                    data: e.target.result,
+                    uploadedAt: new Date().toISOString()
+                };
+                localStorage.setItem('journalism_uploads', JSON.stringify(uploads));
+                
+                resolve(filePath);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+function getImageUrl(imagePath) {
+    if (!imagePath) return getPlaceholderImage('No+Image');
+    
+    // Handle blob URLs (temporary local images)
+    if (imagePath.startsWith('blob:')) return imagePath;
+    
+    // Handle local uploads
+    if (imagePath.startsWith(UPLOADS_DIR)) {
+        const fileName = imagePath.replace(UPLOADS_DIR, '');
+        const uploads = JSON.parse(localStorage.getItem('journalism_uploads') || '{}');
+        return uploads[fileName]?.data || getPlaceholderImage('Image+Not+Found');
+    }
+    
+    // Handle external URLs
+    if (imagePath.startsWith('http')) {
+        // Add cache busting for external images to prevent blinking
+        return `${imagePath}?${new Date().getTime()}`;
+    }
+    
+    return getPlaceholderImage('Invalid+Image');
+}
+
+// Helper functions
+function showUploadStatus(message, type = 'info') {
+    const status = document.getElementById('upload-status');
+    status.textContent = message;
+    status.className = `upload-status ${type}`;
+}
+
+function getPlaceholderImage(text) {
+    return `https://via.placeholder.com/800x400?text=${text}`;
+}
+
+function handleImageErrors(event) {
+    if (event.target.tagName === 'IMG') {
+        event.target.src = getPlaceholderImage('Image+Error');
+        event.target.style.border = '1px solid #e74c3c';
+        event.target.style.padding = '5px';
+    }
+}
+
 
 
 
@@ -36,11 +184,28 @@ function loadPublicPosts() {
     const posts = getPosts();
     
     if (posts.length === 0) {
-        // Sample data for first-time visitors
+        // Sample data for first-time visitors with proper image handling
         const samplePosts = [
-         
-       
-         
+            {
+                id: 1,
+                title: "Investigating Urban Development",
+                summary: "A deep dive into city planning challenges",
+                content: "<p>This article explores the complex issues surrounding urban development in growing cities.</p>",
+                image: "https://via.placeholder.com/800x400?text=Urban+Development",
+                video: "",
+                date: new Date().toISOString().split('T')[0],
+                featured: true
+            },
+            {
+                id: 2,
+                title: "Women in Tech: Breaking Barriers",
+                summary: "How women are transforming the technology sector",
+                content: "<p>An examination of the challenges and successes of women in technology fields.</p>",
+                image: "https://via.placeholder.com/800x400?text=Women+in+Tech",
+                video: "",
+                date: new Date().toISOString().split('T')[0],
+                featured: false
+            }
         ];
         
         savePosts(samplePosts);
@@ -50,43 +215,57 @@ function loadPublicPosts() {
     }
 }
 
+
+// In script.js - Update the image display functions
 function displayPosts(posts) {
     const featuredStoryContainer = document.getElementById('featured-story');
     const storyGridContainer = document.getElementById('story-grid');
     
-    // Clear existing content
     featuredStoryContainer.innerHTML = '';
     storyGridContainer.innerHTML = '';
-    
-    // Find featured post
+
     const featuredPost = posts.find(post => post.featured);
     
-    // Display featured post
     if (featuredPost) {
-        featuredStoryContainer.innerHTML = `
-            <h3>${featuredPost.title}</h3>
-            ${featuredPost.image ? `<img src="${featuredPost.image}" alt="${featuredPost.title}">` : ''}
-            <p>${featuredPost.summary}</p>
-            <p><small>Published on ${featuredPost.date}</small></p>
-            <a href="#" class="read-more">Read Full Story</a>
-        `;
+        featuredStoryContainer.innerHTML = createPostHTML(featuredPost, true);
     }
     
-    // Display other posts
     posts.filter(post => !post.featured).forEach(post => {
         const storyCard = document.createElement('div');
         storyCard.className = 'story-card';
-        storyCard.innerHTML = `
-            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-            <div class="story-content">
-                <h3>${post.title}</h3>
-                <p>${post.summary}</p>
-                <p><small>Published on ${post.date}</small></p>
-                <a href="#" class="read-more">Read More</a>
-            </div>
-        `;
+        storyCard.innerHTML = createPostHTML(post, false);
         storyGridContainer.appendChild(storyCard);
     });
+}
+
+function createPostHTML(post, isFeatured) {
+    const imageUrl = getImageUrl(post.image);
+    return `
+        <div class="post-image-container">
+            <img src="${imageUrl}" 
+                 alt="${post.title}"
+                 loading="lazy"
+                 onload="this.style.opacity = 1"
+                 onerror="handleImageError(this)"
+                 style="opacity: 0; transition: opacity 0.3s ease">
+        </div>
+        <div class="story-content">
+            <h3>${post.title}</h3>
+            <p>${post.summary}</p>
+            <p><small>Published on ${post.date}</small></p>
+            <a href="article.html?id=${post.id}" class="read-more">
+                ${isFeatured ? 'Read Full Story' : 'Read More'}
+            </a>
+        </div>
+    `;
+}
+
+// Global error handler
+function handleImageError(imgElement) {
+    imgElement.src = getPlaceholderImage('Image+Not+Available');
+    imgElement.style.opacity = 1;
+    imgElement.style.border = '1px solid #e74c3c';
+    imgElement.style.padding = '5px';
 }
 
 // Admin page functionality
@@ -278,38 +457,69 @@ function embedVideoUrl(url) {
     return url;
 }
 
-// Update the displayPosts function to link to article pages
-function displayPosts(posts) {
-    const featuredStoryContainer = document.getElementById('featured-story');
-    const storyGridContainer = document.getElementById('story-grid');
+function createPostHTML(post, isFeatured) {
+    const imageUrl = getImageUrl(post.image);
+    return `
+        <div class="post-image-container">
+            <img src="${imageUrl}" alt="${post.title}" 
+                 onerror="this.src='${getPlaceholderImage('Image+Error')}'">
+        </div>
+        <div class="story-content">
+            <h3>${post.title}</h3>
+            <p>${post.summary}</p>
+            <p><small>Published on ${post.date}</small></p>
+            <a href="article.html?id=${post.id}" class="read-more">
+                ${isFeatured ? 'Read Full Story' : 'Read More'}
+            </a>
+        </div>
+    `;
+}
+
+async function createNewPost() {
+    const title = document.getElementById('post-title').value;
+    const summary = document.getElementById('post-summary').value;
+    const content = document.getElementById('post-content').value;
+    const imageInput = document.getElementById('post-image');
+    const video = document.getElementById('post-video').value;
+    const isFeatured = document.getElementById('featured-post').checked;
     
-    featuredStoryContainer.innerHTML = '';
-    storyGridContainer.innerHTML = '';
+    let imagePath = '';
     
-    const featuredPost = posts.find(post => post.featured);
-    
-    if (featuredPost) {
-        featuredStoryContainer.innerHTML = `
-            <h3>${featuredPost.title}</h3>
-            ${featuredPost.image ? `<img src="${featuredPost.image}" alt="${featuredPost.title}">` : ''}
-            <p>${featuredPost.summary}</p>
-            <p><small>Published on ${featuredPost.date}</small></p>
-            <a href="article.html?id=${featuredPost.id}" class="read-more">Read Full Story</a>
-        `;
+    // Handle image upload if present
+    if (imageInput.files.length > 0) {
+        try {
+            // First create a blob URL for immediate display
+            const blobUrl = URL.createObjectURL(imageInput.files[0]);
+            
+            // Then store the image properly
+            imagePath = await uploadAndStoreImage(imageInput.files[0]);
+            
+            // Use the stored path, but fallback to blob URL if needed
+            imagePath = imagePath || blobUrl;
+            
+            showUploadStatus('Image uploaded successfully!', 'success');
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            imagePath = getPlaceholderImage('Upload+Failed');
+            showUploadStatus('Image upload failed. Using placeholder.', 'error');
+        }
     }
     
-    posts.filter(post => !post.featured).forEach(post => {
-        const storyCard = document.createElement('div');
-        storyCard.className = 'story-card';
-        storyCard.innerHTML = `
-            ${post.image ? `<img src="${post.image}" alt="${post.title}">` : ''}
-            <div class="story-content">
-                <h3>${post.title}</h3>
-                <p>${post.summary}</p>
-                <p><small>Published on ${post.date}</small></p>
-                <a href="article.html?id=${post.id}" class="read-more">Read More</a>
-            </div>
-        `;
-        storyGridContainer.appendChild(storyCard);
-    });
+    const newPost = {
+        id: Date.now(),
+        title,
+        summary,
+        content: formatContent(content),
+        image: imagePath,
+        video,
+        date: new Date().toISOString().split('T')[0],
+        featured: isFeatured
+    };
+    
+    // Save and refresh
+    const posts = getPosts();
+    posts.push(newPost);
+    savePosts(posts);
+    loadAdminPosts();
+    alert('Post published successfully!');
 }
